@@ -1,7 +1,7 @@
 {
   "name": "wakil-desktop",
   "productName": "Wakil Desktop",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "Visualiseur en lecture seule d'un écosystème Wakil (entités, projets, agents, skills, commandes).",
   "private": true,
   "main": "electron/main.cjs",

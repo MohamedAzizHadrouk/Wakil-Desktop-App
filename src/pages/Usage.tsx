@@ -13,6 +13,7 @@ import { periodLabel, type Period } from '../lib/period'
 import { PeriodFilter } from '../components/PeriodFilter'
 import { entityOf } from '../lib/model'
 import type { ByModel, Model } from '../lib/types'
+import { CostsTab } from './UsageCosts'
 
 // ---------- formatting ----------
 export function fmtMoney(v: number | null | undefined, cur = 'USD') {
@@ -132,12 +133,12 @@ function SubscriptionFilter({ reg, selected, onChange, unassignedCount }: { reg:
 }
 
 // ---------- page ----------
-type Tab = 'overview' | 'subscriptions' | 'projects' | 'history' | 'acu' | 'registry' | 'pricing'
+type Tab = 'costs' | 'overview' | 'subscriptions' | 'projects' | 'history' | 'acu' | 'registry' | 'pricing'
 
 export function UsagePage({ tab }: { tab?: string }) {
   const m = useModel()
   const { usage, usageLoading, refreshUsage, go } = useApp()
-  const [active, setActive] = useState<Tab>(((tab === 'runs' ? 'history' : tab) as Tab) || 'overview')
+  const [active, setActive] = useState<Tab>(((tab === 'runs' ? 'history' : tab) as Tab) || 'costs')
   const [period, setPeriod] = useState<Period>({ preset: 'month' })
   const [selected, setSelected] = useState<string[] | null>(null)
   const [mode, setMode] = useState<AcuMode>('historical')
@@ -220,6 +221,7 @@ export function UsagePage({ tab }: { tab?: string }) {
 
       <Tabs
         tabs={[
+          { id: 'costs', label: 'Coûts par crédit' },
           { id: 'overview', label: 'Vue d’ensemble' },
           { id: 'subscriptions', label: 'Abonnements', count: a.results.length },
           { id: 'projects', label: 'Projets' },
@@ -293,6 +295,7 @@ export function UsagePage({ tab }: { tab?: string }) {
           <Analytics a={a} base={base} />
         </div>
       )}
+      {active === 'costs' && <CostsTab a={a} base={base} />}
       {active === 'subscriptions' && <SubscriptionsTab results={a.results} base={base} months={a.months} />}
       {active === 'projects' && <ProjectsTab results={a.results} unassigned={a.unassigned} base={base} />}
       {active === 'history' && <HistoryTab records={a.filteredRecords} />}
@@ -320,6 +323,14 @@ export function UsagePage({ tab }: { tab?: string }) {
         ·{' '}
         <button className="underline" onClick={() => go({ page: 'commands', name: 'wakil.provider' })}>
           /wakil.provider
+        </button>{' '}
+        ·{' '}
+        <button className="underline" onClick={() => go({ page: 'commands', name: 'wakil.billing-period' })}>
+          /wakil.billing-period
+        </button>{' '}
+        ·{' '}
+        <button className="underline" onClick={() => go({ page: 'commands', name: 'wakil.credits' })}>
+          /wakil.credits
         </button>{' '}
         ·{' '}
         <button className="underline" onClick={() => go({ page: 'commands', name: 'wakil.usage' })}>

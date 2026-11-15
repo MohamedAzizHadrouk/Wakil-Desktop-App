@@ -6,10 +6,10 @@
 // provider-reported, else an ESTIMATE from API list prices, flagged provisional). A budget is never an expense.
 import { acuEstimated, acuFromReported, acuFromTokens, configAt, type AcuMode } from './acu'
 import { inEffect, monthlyAmount, toBase, type BillingModel, type Confidence, type Method, type Registry, type Subscription } from './registry'
-import { costOf, sumTokens, totalOf, zero } from './usage'
+import { attributeRun, costOf, priceUsage, sumTokens, totalOf, zero } from './usage'
 import type { ManualUsage } from './registry'
-import type { Model, Run, Tokens, Turn, UsageView } from './types'
-import { inRange, monthFraction, type Range } from './period'
+import type { CreditLine, Model, Run, Tokens, Turn, UsageView } from './types'
+import { inRange, localDay, monthFraction, type Range } from './period'
 
 export type UsageRecord = {
   id: string
@@ -36,7 +36,77 @@ export type UsageRecord = {
   apiCost: number // API-equivalent estimate (usage/PRICING.md)
   unpriced: boolean
   sessionId: string | null
-  ref: Run | Turn | ManualUsage
+  sessionTitle?: string
+  fromLog?: boolean // the record comes from usage/credits.jsonl
+  ref: Run | Turn | ManualUsage | CreditLine
+}
+
+const LOG_SOURCE: Record<string, string> = {
+  'claude-code-logs': 'Journal de crédits – Claude Code',
+  'codex-logs': 'Journal de crédits – Codex',
+  'cursor-hook': 'Journal de crédits – Cursor (estimé)',
+}
+
+/** Measured records from the credit log: one line per prompt / sub-agent run (the desktop's single source when present). */
+function recordsFromLog(m: Model, lines: CreditLine[], mode: AcuMode): UsageRecord[] {
+  const reg = m.registry
+  return lines.map((l) => {
+    const models = l.byModel ? Object.keys(l.byModel) : l.model ? [l.model] : []
+    const sub = matchSubscription(reg, l.tool, models, l.at)
+    // historical = credits frozen in the line (formula in effect that day); current = recomputed with the latest formula
+    let acu: number | null = l.credits
+    let acuVersion = l.acuVersion
+    if (mode === 'current') {
+      const cfg = configAt(reg, l.at, 'current')
+      acuVersion = cfg.version
+      if (l.byModel) acu = acuFromTokens(l.byModel, cfg)?.acu ?? l.credits
+      else if (l.creditsMethod === 'estimated') acu = acuEstimated(l.requests, [l.model, l.tool, sub?.provider, sub?.id], cfg)
+    }
+    let entity = l.entity
+    let project = l.project
+    let task = l.task
+    if (!entity) {
+      const a = attributeRun(m, l.prompt)
+      if (a.entity) {
+        entity = a.entity
+        project = a.project ?? null
+        task = a.taskKey ? a.taskKey.split('/')[2] ?? null : null
+      }
+    }
+    const projectKey = entity ? `${entity}/${project ?? 'none'}` : null
+    const tokens: Tokens | null = l.byModel ? sumTokens(Object.values(l.byModel)) : null
+    const pr = l.byModel ? priceUsage(l.byModel, m.pricing) : { cost: 0, unpriced: true }
+    const method: Method = l.creditsMethod === 'exact' ? 'exact' : 'estimated'
+    return {
+      id: `log:${l.id}`,
+      kind: l.kind === 'agent' ? 'run' : l.kind === 'manual' ? 'manual' : 'turn',
+      tool: l.tool,
+      providerId: sub?.provider ?? l.provider ?? null,
+      subscriptionId: sub?.id ?? null,
+      date: l.at,
+      month: monthOf(localDay(l.at)),
+      models,
+      agent: l.agent || 'manager',
+      projectKey,
+      taskKey: task && projectKey ? `${projectKey}/${task}` : null,
+      label: l.prompt,
+      tokens,
+      requests: l.requests,
+      acu,
+      acuVersion,
+      method,
+      confidence: method === 'exact' ? 'high' : l.creditsMethod === 'declared' ? 'medium' : 'low',
+      source: LOG_SOURCE[l.source] ?? `Journal de crédits – ${l.source}`,
+      durationMs: null,
+      contextPct: null,
+      apiCost: pr.cost,
+      unpriced: pr.unpriced,
+      sessionId: l.session,
+      sessionTitle: l.sessionTitle,
+      fromLog: true,
+      ref: l,
+    }
+  })
 }
 
 const monthOf = (d: string) => d.slice(0, 7)
@@ -101,8 +171,13 @@ export function buildRecords(m: Model, usage: UsageView | null, mode: AcuMode): 
       ref: x,
     })
   }
-  for (const r of usage?.runs ?? []) pushMeasured(r)
-  for (const t of usage?.turns ?? []) pushMeasured(t)
+  const log = usage?.raw.creditLog
+  if (log?.present) out.push(...recordsFromLog(m, log.lines, mode))
+  else {
+    // no credit log yet: fall back to reading the tools' local logs directly
+    for (const r of usage?.runs ?? []) pushMeasured(r)
+    for (const t of usage?.turns ?? []) pushMeasured(t)
+  }
 
   for (const u of reg.usage) {
     const sub = reg.subscriptions.find((s) => s.id === u.subscription) ?? null

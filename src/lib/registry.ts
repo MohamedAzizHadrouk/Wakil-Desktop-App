@@ -30,7 +30,8 @@ export type Expense = {
   note: string
   at: string
 }
-export type PlanUsage = { date: string; metric: string; value: number; limit: number | null; window: string; source: string; confidence: Confidence }
+export type BillingPeriodEntry = { start: string; end: string; amount: number; currency: string; note?: string; at?: string }
+export type PlanUsage ={ date: string; metric: string; value: number; limit: number | null; window: string; source: string; confidence: Confidence }
 
 export type Subscription = {
   id: string
@@ -47,6 +48,7 @@ export type Subscription = {
   measurement: Method
   expenses: Expense[]
   planUsage: PlanUsage[]
+  periods: BillingPeriodEntry[] // declared with /wakil.billing-period; others are derived from startDate + frequency
   notes: string
   createdAt: string
   updatedAt: string
@@ -123,6 +125,7 @@ export function parseRegistry(raw: string | undefined): { registry: Registry; er
         usageSources: s.usageSources ?? [],
         expenses: s.expenses ?? [],
         planUsage: s.planUsage ?? [],
+        periods: Array.isArray(s.periods) ? s.periods : [],
       })),
       usage: Array.isArray(r.usage) ? r.usage : [],
       acu: Array.isArray(r.acu) && r.acu.length ? r.acu : [DEFAULT_ACU],

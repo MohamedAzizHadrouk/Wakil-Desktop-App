@@ -279,7 +279,35 @@ export type AiTool = 'claude' | 'codex' | 'cursor'
 export type RunRaw = { id: string; sessionId: string; tool: AiTool; agentType: string; description: string; prompt: string; start: string | null; end: string | null; byModel: ByModel }
 export type TurnRaw = { at: string; prompt: string; command: string | null; args: string; byModel: ByModel }
 export type SessionRaw = { id: string; tool: AiTool; title: string; start: string | null; end: string | null; turns: TurnRaw[] }
-export type UsageRaw = { logDirs: string[]; sources?: { tool: AiTool; dir: string | null; found: boolean }[]; sessions: SessionRaw[]; runs: RunRaw[]; readAt: number }
+/** One line of usage/credits.jsonl (tools/credit-log.cjs): one prompt (main-session turn), sub-agent run or chat declaration. */
+export type CreditLine = {
+  v: number
+  id: string // claude:turn:<session>:<at> · claude:agent:<id> · codex:… · cursor:gen:<id> · <tool>:manual:<id>
+  rev?: number
+  at: string
+  loggedAt?: string
+  tool: AiTool | 'other'
+  provider: string
+  model: string | null
+  kind: 'prompt' | 'agent' | 'manual'
+  session: string | null
+  sessionTitle: string
+  agent: string
+  entity: string | null
+  project: string | null
+  task: string | null
+  command: string | null
+  prompt: string
+  tokens: { input: number; output: number; cacheWrite: number; cacheRead: number; total: number } | null
+  byModel: ByModel | null
+  requests: number
+  credits: number | null
+  creditsMethod: 'exact' | 'estimated' | 'declared' | 'unavailable'
+  acuVersion: number
+  source: string
+}
+export type CreditLog = { present: boolean; path: string; lines: CreditLine[]; rawLines: number; bad: number; modifiedAt: number | null; error?: string }
+export type UsageRaw = { logDirs: string[]; sources?: { tool: AiTool; dir: string | null; found: boolean }[]; sessions: SessionRaw[]; runs: RunRaw[]; creditLog?: CreditLog; readAt: number }
 
 export type PriceRow = { model: string; input: number; output: number; cacheWrite5m: number; cacheWrite1h: number; cacheRead: number }
 

@@ -353,7 +353,33 @@ async function getCodexUsage(root) {
   return { sessions, runs, dir: path.join(codexHome(), 'sessions'), files: files.length }
 }
 
+// ---------- Wakil credit log (usage/credits.jsonl, written by tools/credit-log.cjs after every prompt) ----------
+async function readCreditLog(root) {
+  const rel = 'usage/credits.jsonl'
+  const file = path.join(root, 'usage', 'credits.jsonl')
+  let st
+  try { st = await fsp.stat(file) } catch { return { present: false, path: rel, lines: [], rawLines: 0, bad: 0, modifiedAt: null } }
+  const hit = cache.get(file)
+  if (hit && hit.key === `${st.size}:${st.mtimeMs}`) return hit.data
+  const byId = new Map()
+  let raw = 0
+  let bad = 0
+  for (const line of (await fsp.readFile(file, 'utf8')).split('\n')) {
+    if (!line.trim()) continue
+    raw++
+    try {
+      const o = JSON.parse(line)
+      if (o && o.id && o.at) byId.set(o.id, o) // append-only: the last line of an id wins (corrections use rev + 1)
+      else bad++
+    } catch { bad++ }
+  }
+  const data = { present: true, path: rel, lines: [...byId.values()], rawLines: raw, bad, modifiedAt: st.mtimeMs }
+  cache.set(file, { key: `${st.size}:${st.mtimeMs}`, data })
+  return data
+}
+
 async function getUsage(root) {
+  const creditLog = await readCreditLog(root).catch((e) => ({ present: false, path: 'usage/credits.jsonl', lines: [], rawLines: 0, bad: 0, modifiedAt: null, error: String(e) }))
   const dirs = await logDirsFor(root)
   const sessions = []
   const runs = []
@@ -395,6 +421,7 @@ async function getUsage(root) {
     ],
     sessions,
     runs,
+    creditLog,
     readAt: Date.now(),
   }
 }
