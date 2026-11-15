@@ -1,0 +1,107 @@
+# Agent Team Kit – your ecosystem in Claude Code
+
+A ready-to-use setup for [Claude Code](https://claude.com/claude-code) that organises **your work and your life**:
+
+- **Entities** – the companies, associations, clubs and individuals you work for or with. A small agent team
+  (manager + brand, UI/UX, dev, marketing, media) runs their tasks from Trello, prepares email drafts in Outlook, and asks
+  you before anything important.
+- **Personal ecosystem** – Claude learns who you are (profile), tracks your **skills and learning**
+  (roadmaps, books, courses, resources, practice projects), builds your **personal brand** (positioning, bios,
+  channels, content ideas, plans, post drafts) and keeps you **up to date with the world**
+  (daily news, trends and to-do, following your own preferences).
+
+Clone it, run `/wakil.setup`, answer a few questions – you have your own ecosystem. Nothing personal is ever shared.
+
+## Quick start
+```bash
+git clone <this-repo-url> my-ecosystem
+cd my-ecosystem
+claude --agent manager
+```
+Then type:
+```
+/wakil.setup
+```
+`/wakil.setup` checks your tools (git, Trello / Figma / GitHub connectors, Outlook), creates your private `ecosystem/`
+folder, asks about you, and then offers to set up skills, news and your first client. You can stop any time and
+continue with `/wakil.setup --resume`. Manual, step-by-step version: [SETUP.md](SETUP.md).
+
+## What's inside
+```
+CLAUDE.md               shared rules for every agent (read first)
+COMMANDS.md             catalog of all slash commands
+SETUP.md                detailed manual setup
+.claude/agents/         one folder per agent: <agent>.md + skills/ (INDEX.md + one folder per skill)
+                        manager (main) + brand, ui-ux, fullstack-devops, marketing, media, learning-coach, news-curator
+.claude/commands/       one file per slash command
+ecosystem/_templates/   skeletons for your personal ecosystem (shared)
+entities/_templates/     skeletons for entities (organisation, individual), Trello board spec, Butler rules, email templates (shared)
+tools/outlook-draft.ps1 creates email DRAFTS in Outlook (never sends)
+```
+Your own data (created by the commands, **never committed**):
+```
+ecosystem/
+  PROFILE.md                        who you are, goals, how Claude should work with you
+  knowledge/SKILLS.md               skills you have · learning now · backlog
+  knowledge/skills/<skill>/         SKILL.md (level, goal, roadmap, progress)
+    resources/  books/  courses/    INDEX.md in each – real resources only
+    projects/<project>/PROJECT.md   practice (academic) projects that prove a milestone
+  news/PREFERENCES.md               what news and trends you want, and how
+  news/2026/01/15/                  TODO.md · NEWS.md · TRENDS.md for that day
+  brand/                            your personal brand: BRAND.md · strategy/STRATEGY.md · assets/
+    channels/<channel>/             one folder per channel (instagram, tiktok, linkedin…): CHANNEL.md · CONTENT.md · content/
+entities/<entity>/                   one folder per entity: company, association, club or individual
+entities/registry.md                 Trello boards → entity
+```
+
+## Main commands
+| Area | Commands |
+|---|---|
+| Start | `/wakil.setup` · `/wakil.profile` · `/wakil.resume` · `/wakil.list-commands` |
+| Learning | `/wakil.skills` · `/wakil.learn <skill>` · `/wakil.add-resource` · `/wakil.skill-project` |
+| News | `/wakil.news-preferences` · `/wakil.news` · `/wakil.todo` |
+| Personal brand | `/wakil.brand --setup` · `/wakil.brand --add-channel <name>` · `/wakil.brand --ideas` · `/wakil.brand --plan` · `/wakil.brand --draft <channel> <topic>` |
+| Entities | `/wakil.add-entity` · `/wakil.focus` · `/wakil.new-task` · `/wakil.plan-project` · `/wakil.process` · `/wakil.overview` · `/wakil.reply` |
+| Maintenance | `/wakil.setup-trello` · `/wakil.schedule-local` · `/wakil.check-privacy` · `/wakil.new-command` |
+
+Full list with arguments: [COMMANDS.md](COMMANDS.md).
+
+### Examples
+```
+/wakil.learn "UX research"                      → skill folder, roadmap, real books/courses, first practice project
+/wakil.add-resource ux-research book "<title>"  → added to that skill's books/INDEX.md
+/wakil.news                                      → news/<today>/NEWS.md, TRENDS.md, TODO.md
+/wakil.schedule-local "/wakil.news" 1d mon-fri 08:00   → your news every workday morning
+/wakil.add-entity company "Acme"                    → entity folder + Trello boards
+/wakil.add-entity association "Green Hands"         → same for an association (or club, individual)
+```
+
+## How the agents work
+- **manager** is the main agent: it talks to you, keeps the context, delegates and checks every result.
+- Specialists never talk to you directly and never see other clients' or your personal data unless the brief needs it.
+- Nothing is sent, published, bought, deployed or deleted without your approval. Emails are drafts you send yourself.
+- No invented facts: resources, news and trends always come with real sources.
+
+## Use it from Claude Code, Cursor or Codex
+The agents, skills and commands are written once in `.claude/` and mirrored for the other tools by
+`node tools/sync-ai-tools.cjs` (or `/wakil.sync-tools`):
+
+| | Claude Code | Cursor | Codex (ChatGPT) |
+|---|---|---|---|
+| Rules | `CLAUDE.md` | `AGENTS.md` | `AGENTS.md` |
+| Commands | `/wakil.news` | `/wakil-news` (skill) | `$wakil-news` (skill) |
+| Agents | `.claude/agents/` | `.cursor/agents/` | `.codex/agents/*.toml` |
+| Skills | `.claude/agents/<agent>/skills/` | `.agents/skills/` | `.agents/skills/` |
+
+Start Cursor or Codex in this folder and type the command form of your tool. Wakil Desktop shows the token usage of
+Claude Code and Codex sessions run in this folder (Cursor only keeps usage on its online dashboard).
+
+## Privacy
+This repo shares only the **structure**. `.gitignore` keeps everything under `entities/` and `ecosystem/` (except
+their `_templates/`) on your computer. Run `/wakil.check-privacy` before every commit or push.
+Client data and personal data never mix.
+
+## Requirements
+- Claude Code (CLI or desktop app), Cursor, or OpenAI Codex – one is enough
+- Node.js (to run `tools/sync-ai-tools.cjs` after changing agents, skills or commands)
+- Optional: Trello connector (client boards), Figma and GitHub connectors, Outlook desktop on Windows (email drafts)

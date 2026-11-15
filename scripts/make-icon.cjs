@@ -1,0 +1,29 @@
+// Renders the Wakil mark into build/icon.png (512x512) for the installer / exe icon.
+// Usage: npx electron scripts/make-icon.cjs
+const path = require('path')
+const fs = require('fs')
+const { app, BrowserWindow } = require('electron')
+
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#0B132B"/>
+  <g transform="translate(46 151) scale(3.75)">
+    <path d="M2 10h20a8 8 0 0 1 6.4 3.2L50 46H30a8 8 0 0 1-6.4-3.2z" fill="#E67E56"/>
+    <path d="M43 3.5a4 4 0 0 1 4.6 0l11 8a2 2 0 0 1 0 3.2l-11 8a4 4 0 0 1-4.6 0l-11-8a2 2 0 0 1 0-3.2z" fill="#EE9471"/>
+    <path d="M30 24.5a3 3 0 0 1 3.4-.6l12 7.6a6 6 0 0 1 1.7 1.7l4.6 6.8c.6 1-.1 2.3-1.3 2.3h-8.6a5 5 0 0 1-4-2L29.5 26.8a1.6 1.6 0 0 1 .5-2.3z" fill="#D9603A"/>
+    <path d="M53 34l11-7.4c1.5-1 3.2.7 2.2 2.1L56.6 41z" fill="#F8F1EA"/>
+    <path d="M57 46l23-32.6A8 8 0 0 1 86.6 10H110L85 43.4A8 8 0 0 1 78.6 46H62a4 4 0 0 1-3.3-1.7z" fill="#F8F1EA"/>
+  </g>
+</svg>`
+
+app.whenReady().then(async () => {
+  const win = new BrowserWindow({ width: 512, height: 512, show: false, frame: false, transparent: true, webPreferences: { offscreen: true } })
+  const html = `<html><body style="margin:0;background:transparent">${svg}</body></html>`
+  await win.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html))
+  await new Promise((r) => setTimeout(r, 400))
+  const img = await win.webContents.capturePage({ x: 0, y: 0, width: 512, height: 512 })
+  const out = path.join(__dirname, '..', 'build')
+  fs.mkdirSync(out, { recursive: true })
+  fs.writeFileSync(path.join(out, 'icon.png'), img.resize({ width: 512, height: 512 }).toPNG())
+  fs.writeFileSync(path.join(out, 'icon.svg'), svg)
+  app.quit()
+})

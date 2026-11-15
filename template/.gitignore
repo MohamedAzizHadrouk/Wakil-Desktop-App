@@ -1,0 +1,21 @@
+# ── Privacy: this repo shares only the STRUCTURE (agents, rules, templates, tools). ──
+# All client data stays on this computer: client folders, people, documents, the registry.
+entities/*
+!entities/_templates/
+!entities/_templates/**
+
+# Local Claude Code settings and scratch files
+.claude/settings.local.json
+# Dev-server launch configs point at client project folders
+.claude/launch.json
+*.tmp
+
+# ── Privacy: personal ecosystem (profile, skills, news) stays on this computer. ──
+# Only the empty skeletons in ecosystem/_templates/ are shared.
+ecosystem/*
+!ecosystem/_templates/
+!ecosystem/_templates/**
+
+# ── Privacy: AI subscriptions, prices, expenses and usage records (Wakil AI registry) stay on this computer. ──
+usage/registry.json
+usage/registry.json.tmp
